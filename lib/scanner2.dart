@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 
 class Scanner2 extends StatefulWidget {
@@ -17,6 +18,9 @@ class _Scanner2 extends State<Scanner2> {
   Barcode? result;
   QRViewController? controller;
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+
+
+
 
   // In order to get hot reload to work we need to pause the camera if the platform
   // is android, or resume the camera if the platform is iOS.
@@ -43,8 +47,13 @@ class _Scanner2 extends State<Scanner2> {
 
                 children: <Widget>[
                   if (result != null)
-                    Text(
-                        'Barcode Type: ${describeEnum(result!.format)}   Data: ${result!.code}')
+                    Card(
+                      child: Column(
+                        children: <Widget>[
+                          ListTile(title: Text('qr code'),subtitle: Text('${result!.code}'),)
+                        ],
+                      ),
+                    )
                   else
                     const Text('Scan a code'),
                   Row(
@@ -101,9 +110,11 @@ class _Scanner2 extends State<Scanner2> {
                         ),
                       ),
                       Container(
+
                         margin: const EdgeInsets.all(8),
                         child: ElevatedButton(
-                          onPressed: () async {
+                          onPressed:
+                              () async {
                             await controller?.resumeCamera();
                           },
                           child: const Text('resume',
@@ -140,6 +151,25 @@ class _Scanner2 extends State<Scanner2> {
           cutOutSize: scanArea),
       onPermissionSet: (ctrl, p) => _onPermissionSet(context, ctrl, p),
     );
+  }
+
+  _onBasicAlertPressed(context) {
+    return Alert(
+      context: context,
+      title: "RFLUTTER ALERT",
+      desc: "Flutter is more awesome with RFlutter Alert.",
+    ).show();
+  }
+
+  Future alertDialog1( BuildContext context) {
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return const AlertDialog(
+            title: Text('Done'),
+            content: Text('Add Success'),
+          );
+        });
   }
 
   void _onQRViewCreated(QRViewController controller) {

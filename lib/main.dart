@@ -115,7 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               title: const Text('Parametres'),
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const Scanner3(title: 'Scanner votre Document')));;
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const App(title: 'Scanner votre Document')));;
               },
             ),
             const AboutListTile( // <-- SEE HERE

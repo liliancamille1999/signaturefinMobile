@@ -1,104 +1,124 @@
-import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'dart:developer';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 
 class Scanner3 extends StatefulWidget {
-  const Scanner3({super.key, required this.title});
-
-
-  final String title;
+  const Scanner3({Key? key, required String title}) : super(key: key);
 
   @override
-  State<Scanner3> createState() => _Scanner3();
+  State<StatefulWidget> createState() => _Scanner3();
 }
 
 class _Scanner3 extends State<Scanner3> {
-  String qrCode ='';
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-    });
+  Barcode? result;
+  QRViewController? controller;
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+
+  // In order to get hot reload to work we need to pause the camera if the platform
+  // is android, or resume the camera if the platform is iOS.
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
+    }
+    controller!.resumeCamera();
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.cyan,
-          title: const Text("Scanner votre document",
-            style: TextStyle(fontFamily: "Satisfy"),),
-          centerTitle: true,
-          elevation: 5.0,
-        ),
-        body:  Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Text('Scanner Votre Document',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                  fontFamily: 'Satisfy',
-                ),),
-              const SizedBox(
-                height: 8,
-              ),
-              Text(qrCode,
-                style: const TextStyle(
-                  fontSize: 28,
-                  color: Colors.black,
-                  fontFamily: 'Satisfy',
-                ),),
-              const SizedBox(
-                height: 50,
-              ),
-              ElevatedButton(
-                  style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.black26),
-                      padding:
-                      MaterialStateProperty.all(const EdgeInsets.all(20)),
-                      textStyle: MaterialStateProperty.all(
-                          const TextStyle(fontSize: 14, color: Colors.white))),
-                  onPressed: () => scanQrCode(),
-                  child: const Text('Enabled Button')),
-              const SizedBox(height: 20),
-              const Text(
-                'Scanner votre Document',
-                textScaleFactor: 2,
-              )
-            ],
-          ),)
-      //floatingActionButton: FloatingActionButton(
-      //onPressed: _incrementCounter,
-      //tooltip: 'Increment',
-      //child: const Icon(Icons.add),
-      //), // This trailing comma makes auto-formatting nicer for build methods.
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text('Scanner Votre Document',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black,
+                fontFamily: 'Satisfy',
+              ),),
+            const SizedBox(
+              height: 8,
+            ),
+            Text('${result!.code}',
+              style: const TextStyle(
+                fontSize: 28,
+                color: Colors.black,
+                fontFamily: 'Satisfy',
+              ),),
+            const SizedBox(
+              height: 50,
+            ),
+            ElevatedButton(
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.black26),
+                    padding:
+                    MaterialStateProperty.all(const EdgeInsets.all(20)),
+                    textStyle: MaterialStateProperty.all(
+                        const TextStyle(fontSize: 14, color: Colors.white))),
+                onPressed: () => _buildQrView,
+                child: const Text('Enabled Button')),
+            const SizedBox(height: 20),
+            const Text(
+              'Scanner votre Document',
+              textScaleFactor: 2,
+            )
+          ],
+        ),)
     );
   }
 
-  Future<void> scanQrCode() async {
-
-      MobileScanner(
-          allowDuplicates: false,
-          onDetect: (barcode, args) {
-            if (barcode.rawValue == null) {
-              debugPrint('Failed to scan Barcode');
-            } else {
-              qrCode = barcode.rawValue!;
-              debugPrint('Barcode found! $qrCode');
-              if (!mounted) return;
-              setState(()  {
-                qrCode= qrCode;
-              });
-            }
-          });
-
+  Widget _buildQrView(BuildContext context) {
+    // For this example we check how width or tall the device is and change the scanArea and overlay accordingly.
+    var scanArea = (MediaQuery.of(context).size.width < 400 ||
+        MediaQuery.of(context).size.height < 400)
+        ? 150.0
+        : 300.0;
+    // To ensure the Scanner view is properly sizes after rotation
+    // we need to listen for Flutter SizeChanged notification and update controller
+    return QRView(
+      key: qrKey,
+      onQRViewCreated: _onQRViewCreated,
+      overlay: QrScannerOverlayShape(
+          borderColor: Colors.red,
+          borderRadius: 10,
+          borderLength: 30,
+          borderWidth: 10,
+          cutOutSize: scanArea),
+      onPermissionSet: (ctrl, p) => _onPermissionSet(context, ctrl, p),
+    );
   }
+
+  void _onQRViewCreated(QRViewController controller) {
+    setState(() {
+      this.controller = controller;
+    });
+    controller.scannedDataStream.listen((scanData) {
+      setState(() {
+        result = scanData;
+      });
+    });
+  }
+
+  void _onPermissionSet(BuildContext context, QRViewController ctrl, bool p) {
+    log('${DateTime.now().toIso8601String()}_onPermissionSet $p');
+    if (!p) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('no Permission')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+
 
 }
